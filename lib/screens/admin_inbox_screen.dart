@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'edit_unit_screen.dart';
 
 class AdminInboxScreen extends StatefulWidget {
   const AdminInboxScreen({super.key});
@@ -12,6 +13,7 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
   // We use late Futures so we can re-trigger them to refresh the screen
   late Future<List<Map<String, dynamic>>> _inquiriesFuture;
   late Future<List<Map<String, dynamic>>> _maintenanceFuture;
+  late Future<List<Map<String, dynamic>>> _unitsFuture;
 
   @override
   void initState() {
@@ -22,15 +24,9 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
   // Call this whenever we update or delete a record to reload the UI
   void _refreshData() {
     setState(() {
-      _inquiriesFuture = Supabase.instance.client
-          .from('inquiries')
-          .select()
-          .order('created_at', ascending: false);
-
-      _maintenanceFuture = Supabase.instance.client
-          .from('maintenance_requests')
-          .select()
-          .order('created_at', ascending: false);
+      _inquiriesFuture = Supabase.instance.client.from('inquiries').select().order('created_at', ascending: false);
+      _maintenanceFuture = Supabase.instance.client.from('maintenance_requests').select().order('created_at', ascending: false);
+      _unitsFuture = Supabase.instance.client.from('units').select().order('building', ascending: true).order('unit_code', ascending: true); 
     });
   }
 
@@ -101,7 +97,7 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -114,6 +110,7 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
             tabs: [
               Tab(icon: Icon(Icons.person_search), text: 'Inquiries'),
               Tab(icon: Icon(Icons.build), text: 'Maintenance'),
+              Tab(icon: Icon(Icons.apartment), text: 'Units'),
             ],
           ),
         ),
@@ -161,6 +158,36 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
                     subtitle: Text('Tenant: ${data['tenant_name']}\nIssue: ${data['issue_category']}'),
                     isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
+                  ),
+                );
+              },
+            ),
+
+            // TAB 3: Units List
+            _buildDataList(
+              future: _unitsFuture,
+              itemBuilder: (context, data) {
+                final isAvailable = data['status'] == 'Available';
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    onTap: () async {
+                      // Navigate to Edit Screen and wait to see if it needs a refresh
+                      final shouldRefresh = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EditUnitScreen(unit: data)),
+                      );
+                      if (shouldRefresh == true) _refreshData();
+                    },
+                    leading: CircleAvatar(
+                      backgroundColor: isAvailable ? Colors.green.shade100 : Colors.red.shade100,
+                      child: Icon(isAvailable ? Icons.check : Icons.person, 
+                        color: isAvailable ? Colors.green : Colors.red),
+                    ),
+                    title: Text('${data['building']} - Unit ${data['unit_code']}', 
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(isAvailable ? 'Status: Available' : 'Tenant: ${data['first_name']} ${data['last_name']}'),
+                    trailing: const Icon(Icons.edit, color: Colors.grey),
                   ),
                 );
               },
