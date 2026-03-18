@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_unit_screen.dart';
+import 'admin_settings_screen.dart';
 
 class AdminInboxScreen extends StatefulWidget {
   const AdminInboxScreen({super.key});
@@ -9,16 +10,31 @@ class AdminInboxScreen extends StatefulWidget {
   State<AdminInboxScreen> createState() => _AdminInboxScreenState();
 }
 
-class _AdminInboxScreenState extends State<AdminInboxScreen> {
+class _AdminInboxScreenState extends State<AdminInboxScreen> with SingleTickerProviderStateMixin {
   late Future<List<Map<String, dynamic>>> _inquiriesFuture;
   late Future<List<Map<String, dynamic>>> _maintenanceFuture;
   late Future<List<Map<String, dynamic>>> _unitsFuture;
   late Future<List<Map<String, dynamic>>> _announcementsFuture;
 
+  late TabController _tabController;
+
   @override
   void initState() {
-    super.initState();
-    _refreshData();
+      super.initState();
+      // Initialize the TabController
+      _tabController = TabController(length: 4, vsync: this);
+      // Tell the screen to rebuild whenever the tab changes
+      _tabController.addListener(() {
+        setState(() {}); 
+      });
+      
+      _refreshData();
+    }
+
+  @override
+  void dispose() {
+    _tabController.dispose(); // Always clean up controllers!
+    super.dispose();
   }
 
   void _refreshData() {
@@ -209,139 +225,153 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Admin Dashboard',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Colors.teal.shade700,
-          foregroundColor: Colors.white,
-
-          // ✅ FIXED TAB COLORS HERE
-          bottom: const TabBar(
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white,
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(icon: Icon(Icons.person_search), text: 'Inquiries'),
-              Tab(icon: Icon(Icons.build), text: 'Maintenance'),
-              Tab(icon: Icon(Icons.apartment), text: 'Units'),
-              Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
-            ],
-          ),
+    // REMOVED DefaultTabController from here
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.teal,
-          onPressed: _showCreateAnnouncementDialog,
-          child: const Icon(Icons.add),
-        ),
-
-        body: TabBarView(
-          children: [
-            _buildDataList(
-              future: _inquiriesFuture,
-              itemBuilder: (context, data) {
-                final isPending = data['status'] == 'pending';
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    onTap: () => _showActionDialog(data, 'inquiries', 'Inquiry'),
-                    leading: CircleAvatar(
-                      backgroundColor: isPending ? Colors.orange.shade100 : Colors.green.shade100,
-                      child: Icon(
-                        isPending ? Icons.pending : Icons.check,
-                        color: isPending ? Colors.orange : Colors.green,
-                      ),
-                    ),
-                    title: Text((data['name'] ?? '').toString()),
-                    subtitle: Text((data['message'] ?? '').toString()),
-                  ),
-                );
-              },
-            ),
-
-            _buildDataList(
-              future: _maintenanceFuture,
-              itemBuilder: (context, data) {
-                final isPending = data['status'] == 'pending';
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    onTap: () => _showActionDialog(data, 'maintenance_requests', 'Maintenance'),
-                    leading: Icon(Icons.build, color: isPending ? Colors.orange : Colors.green),
-                    title: Text('${data['building_name']} - ${data['unit_number']}'),
-                    subtitle: Text((data['issue_category'] ?? '').toString()),
-                  ),
-                );
-              },
-            ),
-
-            _buildDataList(
-              future: _unitsFuture,
-              itemBuilder: (context, data) {
-                final isAvailable = data['status'] == 'Available';
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    onTap: () async {
-                      final shouldRefresh = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditUnitScreen(unit: data),
-                        ),
-                      );
-                      if (shouldRefresh == true) _refreshData();
-                    },
-                    leading: Icon(
-                      isAvailable ? Icons.check_circle : Icons.person,
-                      color: isAvailable ? Colors.green : Colors.red,
-                    ),
-                    title: Text('${data['building']} - Unit ${data['unit_code']}'),
-                    subtitle: Text(
-                      isAvailable
-                          ? 'Available'
-                          : 'Tenant: ${data['first_name']} ${data['last_name']}',
-                    ),
-                    trailing: const Icon(Icons.edit),
-                  ),
-                );
-              },
-            ),
-
-            _buildDataList(
-              future: _announcementsFuture,
-              itemBuilder: (context, data) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    onTap: () => _showAnnouncementDialog(data),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.teal.shade100,
-                      child: const Icon(Icons.campaign, color: Colors.teal),
-                    ),
-                    title: Text(
-                      (data['title'] ?? 'No Title').toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      (data['message'] ?? '').toString(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                  ),
-                );
-              },
-            ),
+        backgroundColor: Colors.teal.shade700,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminSettingsScreen()),
+              );
+            },
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController, // <--- 1. Attach controller here
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white,
+          indicatorColor: Colors.white,
+          tabs: const [
+            Tab(icon: Icon(Icons.person_search), text: 'Inquiries'),
+            Tab(icon: Icon(Icons.build), text: 'Maintenance'),
+            Tab(icon: Icon(Icons.apartment), text: 'Units'),
+            Tab(icon: Icon(Icons.campaign), text: 'Announcements'),
           ],
         ),
+      ),
+
+      // 2. Add the logic to only show the FAB on tab index 3 (Announcements)
+      floatingActionButton: _tabController.index == 3
+          ? FloatingActionButton(
+              backgroundColor: Colors.teal,
+              onPressed: _showCreateAnnouncementDialog,
+              child: const Icon(Icons.add),
+            )
+          : null, // Hides the button on all other tabs
+
+      body: TabBarView(
+        controller: _tabController, // <--- 3. Attach controller here
+        children: [
+          // ... Keep all your _buildDataList children exactly the same ...
+          _buildDataList(
+            future: _inquiriesFuture,
+            itemBuilder: (context, data) {
+              final isPending = data['status'] == 'pending';
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  onTap: () => _showActionDialog(data, 'inquiries', 'Inquiry'),
+                  leading: CircleAvatar(
+                    backgroundColor: isPending ? Colors.orange.shade100 : Colors.green.shade100,
+                    child: Icon(
+                      isPending ? Icons.pending : Icons.check,
+                      color: isPending ? Colors.orange : Colors.green,
+                    ),
+                  ),
+                  title: Text((data['name'] ?? '').toString()),
+                  subtitle: Text((data['message'] ?? '').toString()),
+                ),
+              );
+            },
+          ),
+
+          _buildDataList(
+            future: _maintenanceFuture,
+            itemBuilder: (context, data) {
+              final isPending = data['status'] == 'pending';
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  onTap: () => _showActionDialog(data, 'maintenance_requests', 'Maintenance'),
+                  leading: Icon(Icons.build, color: isPending ? Colors.orange : Colors.green),
+                  title: Text('${data['building_name']} - ${data['unit_number']}'),
+                  subtitle: Text((data['issue_category'] ?? '').toString()),
+                ),
+              );
+            },
+          ),
+
+          _buildDataList(
+            future: _unitsFuture,
+            itemBuilder: (context, data) {
+              final isAvailable = data['status'] == 'Available';
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  onTap: () async {
+                    final shouldRefresh = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditUnitScreen(unit: data),
+                      ),
+                    );
+                    if (shouldRefresh == true) _refreshData();
+                  },
+                  leading: Icon(
+                    isAvailable ? Icons.check_circle : Icons.person,
+                    color: isAvailable ? Colors.green : Colors.red,
+                  ),
+                  title: Text('${data['building']} - Unit ${data['unit_code']}'),
+                  subtitle: Text(
+                    isAvailable
+                        ? 'Available'
+                        : 'Tenant: ${data['first_name']} ${data['last_name']}',
+                  ),
+                  trailing: const Icon(Icons.edit),
+                ),
+              );
+            },
+          ),
+
+          _buildDataList(
+            future: _announcementsFuture,
+            itemBuilder: (context, data) {
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  onTap: () => _showAnnouncementDialog(data),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.teal.shade100,
+                    child: const Icon(Icons.campaign, color: Colors.teal),
+                  ),
+                  title: Text(
+                    (data['title'] ?? 'No Title').toString(),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    (data['message'] ?? '').toString(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -353,15 +383,49 @@ class _AdminInboxScreenState extends State<AdminInboxScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text('Manage $title'),
-        content: Text((data['message'] ?? data['description'] ?? '').toString()),
+        // We use a SingleChildScrollView so if there is a lot of data, it scrolls instead of breaking the screen
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: data.entries.map((entry) {
+              // Skip empty values or the internal database ID to keep the UI clean
+              if (entry.key == 'id' || entry.value == null || entry.value.toString().isEmpty) {
+                return const SizedBox.shrink();
+              }
+              
+              // Automatically format keys (e.g., 'unit_preference' becomes 'Unit Preference')
+              final formattedKey = entry.key
+                  .replaceAll('_', ' ')
+                  .split(' ')
+                  .map((word) => word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '')
+                  .join(' ');
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: RichText(
+                  text: TextSpan(
+                    // Default text style for the dialog
+                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                    children: [
+                      TextSpan(text: '$formattedKey: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(text: '${entry.value}'),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => _deleteRecord(table, data['id']),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
           ElevatedButton(
             onPressed: () => _toggleStatus(table, data['id'], data['status']),
-            child: Text(isPending ? 'Resolve' : 'Set Pending'),
+            child: Text(isPending ? 'Mark Resolved' : 'Set Pending'),
           ),
         ],
       ),
