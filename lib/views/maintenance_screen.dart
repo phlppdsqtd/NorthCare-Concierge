@@ -36,6 +36,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
   bool _isSubmitting = false;
 
+  // HELPER FUNCTION: Converts "philipp dee" to "Philipp Dee"
+  String _toTitleCase(String text) {
+    if (text.isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
   Future<void> _submitMaintenanceRequest() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -46,11 +55,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     });
 
     try {
+      // Format the data right before inserting
+      final formattedUnitNumber = _unitNumberController.text.trim().toUpperCase();
+      final formattedTenantName = _toTitleCase(_tenantNameController.text.trim());
+
       // Insert the data into the 'maintenance_requests' table
       await Supabase.instance.client.from('maintenance_requests').insert({
         'building_name': _selectedBuilding,
-        'unit_number': _unitNumberController.text.trim(),
-        'tenant_name': _tenantNameController.text.trim(),
+        'unit_number': formattedUnitNumber,
+        'tenant_name': formattedTenantName,
         'issue_category': _selectedCategory,
         'description': _descriptionController.text.trim(),
       });
@@ -110,9 +123,33 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Please provide details about the issue so our caretaker can assist you promptly.',
+                'Kindly provide details about the issue so our caretaker can assist you promptly.',
                 style: TextStyle(color: Colors.grey),
               ),
+              const SizedBox(height: 12),
+              
+              // Added Verification Instruction Here
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade800, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Please enter your exact unit code, first name, and last name to verify that the request is valid.',
+                        style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
               const SizedBox(height: 24),
 
               // Building Dropdown
@@ -142,6 +179,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                         labelText: 'Unit #',
                         border: OutlineInputBorder(),
                       ),
+                      // Bonus tip: textCapitalization gives the keyboard a hint to uppercase!
+                      textCapitalization: TextCapitalization.characters,
                       validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                     ),
                   ),
@@ -151,9 +190,11 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     child: TextFormField(
                       controller: _tenantNameController,
                       decoration: const InputDecoration(
-                        labelText: 'Your Name',
+                        labelText: 'First and Last Name',
                         border: OutlineInputBorder(),
                       ),
+                      // Hinting the keyboard to capitalize words
+                      textCapitalization: TextCapitalization.words,
                       validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                     ),
                   ),
@@ -186,6 +227,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   border: OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
+                textCapitalization: TextCapitalization.sentences, // Start sentences with a capital letter
                 validator: (value) => value == null || value.isEmpty ? 'Please describe the issue' : null,
               ),
               const SizedBox(height: 32),

@@ -67,11 +67,10 @@ class _AvailableUnitsScreenState extends State<AvailableUnitsScreen> {
                         ],
                       ),
                       const Divider(),
-                      // Text('Type: ${unit['unit_type']} | Size: ${unit['room_size']} sqm | Capacity: ${unit['capacity']} pax', style: const TextStyle(fontSize: 16)),
                       Text('${unit['unit_type']} | ${unit['room_size']} sqm | ${unit['capacity']} pax', style: const TextStyle(fontSize: 16)),
                       const SizedBox(height: 4),
-                      const SizedBox(height: 4),
-                      Text('Furnishing: ${unit['furnish']}', style: const TextStyle(color: Colors.grey)),
+                      // Added Term Lease beside Furnishing
+                      Text('Furnishing: ${unit['furnish']} | Lease: ${unit['term_lease'] ?? '12'} months', style: const TextStyle(color: Colors.grey)),
                       Text('Bathroom: ${unit['restroom']} | Curfew: ${unit['curfew']}', style: const TextStyle(color: Colors.grey)),
                       const SizedBox(height: 12),
                       Row(
@@ -84,8 +83,15 @@ class _AvailableUnitsScreenState extends State<AvailableUnitsScreen> {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
                             onPressed: () {
-                              // Send them straight to the inquiry form!
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const InquiryScreen()));
+                              // UPDATED: Send them straight to the inquiry form WITH context!
+                              Navigator.push(
+                                context, 
+                                MaterialPageRoute(
+                                  builder: (context) => InquiryScreen(
+                                    prefilledMessage: 'Hi, I am interested in ${unit['building']} - Unit ${unit['unit_code']}. Is this still available?',
+                                  )
+                                )
+                              );
                             },
                             child: const Text('Inquire Now'),
                           ),

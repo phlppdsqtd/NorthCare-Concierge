@@ -102,11 +102,49 @@ class AdminInboxViewModel extends ChangeNotifier {
   }
 
   Future<void> updateUnit(String id, Map<String, dynamic> updates) async {
-    await _supabase.from('units').update(updates).eq('id', id);
-    await fetchData();
+    // SAFETY CHECK: Supabase Postgres will crash if you send an empty string "" to a Date column.
+    // We must convert empty strings to actual nulls before sending to the DB.
+    final safeUpdates = Map<String, dynamic>.from(updates);
+    
+    if (safeUpdates['start_lease'] != null && safeUpdates['start_lease'].toString().trim().isEmpty) {
+      safeUpdates['start_lease'] = null;
+    }
+    if (safeUpdates['end_lease'] != null && safeUpdates['end_lease'].toString().trim().isEmpty) {
+      safeUpdates['end_lease'] = null;
+    }
+
+    try {
+      await _supabase.from('units').update(safeUpdates).eq('id', id);
+      await fetchData();
+    } catch (e) {
+      debugPrint('Error updating unit: $e');
+      rethrow; // Rethrow so the UI can catch it if needed
+    }
   }
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
+  }
+
+  Future<void> clearUnitTenant(String unitId) async {
+    try {
+      // Switched to use your existing _supabase instance variable for cleaner code
+      await _supabase
+          .from('units')
+          .update({
+            'first_name': null,
+            'last_name': null,
+            'contact': null,
+            'occupancy': 0,
+            'start_lease': null,
+            'end_lease': null,
+            'status': 'Available', // Resetting status
+          })
+          .eq('id', unitId);
+          
+      await fetchData(); // Refresh the lists after clearing
+    } catch (e) {
+      debugPrint('Error clearing unit: $e');
+    }
   }
 }

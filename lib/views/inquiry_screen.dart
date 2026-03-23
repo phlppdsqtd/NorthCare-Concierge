@@ -2,31 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class InquiryScreen extends StatefulWidget {
-  const InquiryScreen({super.key});
+  final String? prefilledMessage; // <-- Add this to catch passed data
+
+  const InquiryScreen({super.key, this.prefilledMessage});
 
   @override
   State<InquiryScreen> createState() => _InquiryScreenState();
 }
 
 class _InquiryScreenState extends State<InquiryScreen> {
-  // A key to validate our form
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers to grab the text the user types
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
-  final _messageController = TextEditingController();
+  late final TextEditingController _messageController; // <-- Change to late
 
-  // Dropdown state
   String? _selectedUnitType;
   final List<String> _unitTypes = ['Studio', '1-Bedroom', '2-Bedroom', 'Not Sure Yet'];
 
-  // Loading state to disable the button while submitting
   bool _isSubmitting = false;
 
-  // The function that pushes data to your Supabase database
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill the message box if a message was passed in!
+    _messageController = TextEditingController(text: widget.prefilledMessage ?? '');
+  }
+
   Future<void> _submitInquiry() async {
-    // 1. Validate the form fields
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -36,16 +39,13 @@ class _InquiryScreenState extends State<InquiryScreen> {
     });
 
     try {
-      // 2. Insert the data into the 'inquiries' table
       await Supabase.instance.client.from('inquiries').insert({
         'name': _nameController.text.trim(),
         'contact_info': _contactController.text.trim(),
         'unit_type': _selectedUnitType ?? 'Not specified',
         'message': _messageController.text.trim(),
-        // Note: 'status' defaults to 'pending' and 'created_at' is handled automatically by Supabase!
       });
 
-      // 3. Show a success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -53,11 +53,9 @@ class _InquiryScreenState extends State<InquiryScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // 4. Send the user back to the Home Screen
         Navigator.pop(context);
       }
     } catch (error) {
-      // Handle any errors (like no internet connection)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -77,7 +75,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
 
   @override
   void dispose() {
-    // Clean up controllers to prevent memory leaks
     _nameController.dispose();
     _contactController.dispose();
     _messageController.dispose();
@@ -109,7 +106,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Full Name Field
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -121,7 +117,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Contact Info Field
               TextFormField(
                 controller: _contactController,
                 decoration: const InputDecoration(
@@ -133,7 +128,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Unit Type Dropdown
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
                   labelText: 'Preferred Unit Type',
@@ -153,7 +147,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Message / Questions Field
               TextFormField(
                 controller: _messageController,
                 maxLines: 4,
@@ -166,7 +159,6 @@ class _InquiryScreenState extends State<InquiryScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Submit Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
