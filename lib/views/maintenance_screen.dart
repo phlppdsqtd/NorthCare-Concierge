@@ -11,12 +11,10 @@ class MaintenanceScreen extends StatefulWidget {
 class _MaintenanceScreenState extends State<MaintenanceScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for text input
   final _tenantNameController = TextEditingController();
   final _unitNumberController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  // Dropdown states and options
   String? _selectedBuilding;
   final List<String> _buildings = [
     'D’ NorthGate',
@@ -36,7 +34,6 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
   bool _isSubmitting = false;
 
-  // HELPER FUNCTION: Converts "philipp dee" to "Philipp Dee"
   String _toTitleCase(String text) {
     if (text.isEmpty) return text;
     return text.split(' ').map((word) {
@@ -55,11 +52,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     });
 
     try {
-      // Format the data right before inserting
       final formattedUnitNumber = _unitNumberController.text.trim().toUpperCase();
       final formattedTenantName = _toTitleCase(_tenantNameController.text.trim());
 
-      // Insert the data into the 'maintenance_requests' table
       await Supabase.instance.client.from('maintenance_requests').insert({
         'building_name': _selectedBuilding,
         'unit_number': formattedUnitNumber,
@@ -70,19 +65,23 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Maintenance request submitted successfully!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Maintenance request submitted successfully!', style: TextStyle(fontWeight: FontWeight.w600)),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
-        Navigator.pop(context); // Go back to Home Screen
+        Navigator.pop(context); 
       }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error submitting request: $error'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -103,15 +102,44 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     super.dispose();
   }
 
+  // Helper method for consistent input styling
+  InputDecoration _inputDecor(String label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: icon != null ? Icon(icon, color: Colors.teal.shade600) : null,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.teal.shade600, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.red.shade300, width: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Report an Issue'),
+        title: const Text('Report an Issue', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -119,46 +147,43 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
             children: [
               const Text(
                 'Maintenance Request',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Kindly provide details about the issue so our caretaker can assist you promptly.',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 15, height: 1.4),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               
-              // Added Verification Instruction Here
+              // Modernized Verification Instruction
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.orange.shade200),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange.shade800, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.info_outline, color: Colors.orange.shade800, size: 22),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Please enter your exact unit code, first name, and last name to verify that the request is valid.',
-                        style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                        style: TextStyle(color: Colors.orange.shade900, fontSize: 14, height: 1.4),
                       ),
                     ),
                   ],
                 ),
               ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // Building Dropdown
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Building',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.apartment),
-                ),
+                decoration: _inputDecor('Building', icon: Icons.apartment_outlined),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
                 value: _selectedBuilding,
                 items: _buildings.map((building) {
                   return DropdownMenuItem(value: building, child: Text(building));
@@ -168,18 +193,14 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Unit Number and Tenant Name Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     flex: 1,
                     child: TextFormField(
                       controller: _unitNumberController,
-                      decoration: const InputDecoration(
-                        labelText: 'Unit #',
-                        border: OutlineInputBorder(),
-                      ),
-                      // Bonus tip: textCapitalization gives the keyboard a hint to uppercase!
+                      decoration: _inputDecor('Unit #'),
                       textCapitalization: TextCapitalization.characters,
                       validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                     ),
@@ -189,11 +210,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     flex: 2,
                     child: TextFormField(
                       controller: _tenantNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'First and Last Name',
-                        border: OutlineInputBorder(),
-                      ),
-                      // Hinting the keyboard to capitalize words
+                      decoration: _inputDecor('First & Last Name'),
                       textCapitalization: TextCapitalization.words,
                       validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                     ),
@@ -202,13 +219,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Issue Category Dropdown
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Issue Category',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.build_circle_outlined),
-                ),
+                decoration: _inputDecor('Issue Category', icon: Icons.build_circle_outlined),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded),
                 value: _selectedCategory,
                 items: _categories.map((category) {
                   return DropdownMenuItem(value: category, child: Text(category));
@@ -218,31 +231,33 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Description Field
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Describe the issue in detail...',
-                  border: OutlineInputBorder(),
+                decoration: _inputDecor('Describe the issue in detail...', icon: Icons.description_outlined).copyWith(
                   alignLabelWithHint: true,
                 ),
-                textCapitalization: TextCapitalization.sentences, // Start sentences with a capital letter
+                textCapitalization: TextCapitalization.sentences, 
                 validator: (value) => value == null || value.isEmpty ? 'Please describe the issue' : null,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
-              // Submit Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
+              SizedBox(
+                height: 54,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: _isSubmitting ? null : _submitMaintenanceRequest,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Submit Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                 ),
-                onPressed: _isSubmitting ? null : _submitMaintenanceRequest,
-                child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Submit Request', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),

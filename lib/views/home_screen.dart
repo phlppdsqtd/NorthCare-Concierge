@@ -10,7 +10,7 @@ import 'announcements_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // Reusable password dialog for both Tenants and Admins
+  // Reusable password dialog (Modernized slightly with rounded corners)
   Future<void> _showPasswordDialog(BuildContext context, String role, Widget destinationScreen) async {
     final passwordController = TextEditingController();
     String errorMessage = '';
@@ -21,17 +21,26 @@ class HomeScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Enter ${role[0].toUpperCase()}${role.substring(1)} Password'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                '${role[0].toUpperCase()}${role.substring(1)} Verification',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const Text(
+                    'Please enter the access code to continue.',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: 'Access Code',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   if (errorMessage.isNotEmpty) ...[
@@ -43,19 +52,19 @@ class HomeScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () async {
                     final input = passwordController.text.trim();
                     if (input.isEmpty) return;
 
                     try {
-                      // Fetch the correct password from Supabase
                       final response = await Supabase.instance.client
                           .from('passcodes')
                           .select('code')
@@ -64,8 +73,7 @@ class HomeScreen extends StatelessWidget {
 
                       if (response['code'] == input) {
                         if (dialogContext.mounted) {
-                          Navigator.pop(dialogContext); // Close dialog
-                          // Navigate to destination
+                          Navigator.pop(dialogContext);
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => destinationScreen),
@@ -78,7 +86,7 @@ class HomeScreen extends StatelessWidget {
                       setState(() => errorMessage = 'Error verifying password.');
                     }
                   },
-                  child: const Text('Login'),
+                  child: const Text('Unlock'),
                 ),
               ],
             );
@@ -91,134 +99,219 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'NorthCare Concierge',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
+        children: [
+          // Custom Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 60, bottom: 30, left: 24, right: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal.shade800, Colors.teal.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.apartment, size: 80, color: Colors.teal),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'Welcome to D’ NorthGate, D’ NorthWay & NorthPoint Atrium',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 40),
-
-                // ================= AI BUTTON =================
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ChatScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.smart_toy),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                Row(
+                  children: [
+                    Icon(Icons.apartment, color: Colors.white, size: 32),
+                    SizedBox(width: 12),
+                    Text(
+                      'NorthCare',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                  ),
-                  label: const Text(
-                    'Ask our AI Concierge',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 24),
-
-                // ================= AVAILABLE ROOMS =================
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AvailableUnitsScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.meeting_room),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  label: const Text(
-                    'View Available Rooms',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                SizedBox(height: 24),
+                Text(
+                  'Welcome home.',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
-
-                const SizedBox(height: 20),
-
-                // ================= INQUIRY =================
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const InquiryScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.person_search),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  label: const Text(
-                    'Submit Unit Inquiry',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // ================= ANNOUNCEMENTS =================
-                TextButton.icon(
-                  onPressed: () => _showPasswordDialog(context, 'tenant', const AnnouncementsScreen()),
-                  icon: const Icon(Icons.campaign),
-                  label: const Text('View Announcements (Tenants)'),
-                ),
-
-                const SizedBox(height: 16),
-
-                // ================= MAINTENANCE =================
-                TextButton.icon(
-                  onPressed: () => _showPasswordDialog(context, 'tenant', const MaintenanceScreen()),
-                  icon: const Icon(Icons.build),
-                  label: const Text('Report Maintenance Issue (Tenants)'),
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(height: 32),
-
-                // ================= ADMIN =================
-                TextButton.icon(
-                  onPressed: () => _showPasswordDialog(context, 'admin', const AdminInboxScreen()),
-                  icon: const Icon(Icons.admin_panel_settings, color: Colors.grey),
-                  label: const Text(
-                    'Property Manager Login',
-                    style: TextStyle(color: Colors.grey),
-                  ),
+                SizedBox(height: 4),
+                Text(
+                  'How can we help you today?',
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
+
+          // Main Body Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Prominent AI Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ChatScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.teal.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                        ],
+                        border: Border.all(color: Colors.teal.shade100, width: 2),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.smart_toy, color: Colors.teal.shade700, size: 32),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Ask AI Concierge', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                Text('Instant answers 24/7', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios, color: Colors.teal.shade300, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                  const Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  // 2x2 Grid for Actions
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.1,
+                    children: [
+                      _buildDashboardCard(
+                        context: context,
+                        icon: Icons.meeting_room_outlined,
+                        title: 'Available\nUnits',
+                        color: Colors.blue,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AvailableUnitsScreen())),
+                      ),
+                      _buildDashboardCard(
+                        context: context,
+                        icon: Icons.person_search_outlined,
+                        title: 'Submit\nInquiry',
+                        color: Colors.orange,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InquiryScreen())),
+                      ),
+                      _buildDashboardCard(
+                        context: context,
+                        icon: Icons.campaign_outlined,
+                        title: 'Community\nUpdates',
+                        color: Colors.purple,
+                        onTap: () => _showPasswordDialog(context, 'tenant', const AnnouncementsScreen()),
+                        isSecured: true,
+                      ),
+                      _buildDashboardCard(
+                        context: context,
+                        icon: Icons.build_circle_outlined,
+                        title: 'Report\nIssue',
+                        color: Colors.red,
+                        onTap: () => _showPasswordDialog(context, 'tenant', const MaintenanceScreen()),
+                        isSecured: true,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Admin Login at the very bottom
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => _showPasswordDialog(context, 'admin', const AdminInboxScreen()),
+                      icon: const Icon(Icons.admin_panel_settings, color: Colors.grey, size: 18),
+                      label: const Text(
+                        'Property Manager Login',
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper widget to generate clean, uniform cards
+  Widget _buildDashboardCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+    bool isSecured = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 28),
+                ),
+                if (isSecured)
+                  Icon(Icons.lock, size: 16, color: Colors.grey.shade400),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, height: 1.2),
+            ),
+          ],
         ),
       ),
     );

@@ -1,8 +1,8 @@
-// main.dart
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart'; // <-- 1. Import Google Fonts
+
 import 'views/home_screen.dart';
 import 'viewmodel/admin_inbox_viewmodel.dart';
 import 'viewmodel/chat_viewmodel.dart';
@@ -36,7 +36,24 @@ class NorthCareApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        scaffoldBackgroundColor: Colors.grey.shade50,
         useMaterial3: true,
+        
+        // Apply Inter to the entire app's TextTheme
+        textTheme: GoogleFonts.interTextTheme(
+          Theme.of(context).textTheme,
+        ),
+        
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          // Use GoogleFonts.inter() directly for the TextStyle!
+          titleTextStyle: GoogleFonts.inter(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       home: const HomeScreen(),
     );
