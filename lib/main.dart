@@ -1,8 +1,11 @@
+// main.dart
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'views/home_screen.dart';
 import 'package:provider/provider.dart';
+import 'views/home_screen.dart';
 import 'viewmodel/admin_inbox_viewmodel.dart';
+import 'viewmodel/chat_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,10 +15,12 @@ void main() async {
     anonKey: 'sb_publishable_2h61nZYHjRTDOAzLPzPW2w_0YwtxEGD',
   );
 
-  // We are just wrapping your app in the MultiProvider here!
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AdminInboxViewModel())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AdminInboxViewModel()),
+        ChangeNotifierProvider(create: (_) => ChatViewModel()),
+      ],
       child: const NorthCareApp(),
     ),
   );
