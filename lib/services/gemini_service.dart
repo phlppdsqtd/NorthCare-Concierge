@@ -1,10 +1,11 @@
 // lib/services/gemini_service.dart
 
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyCBABlaIG-nLJy89I8Jvln2Q3H94yChxi4';
+  static const String _apiKey = 'AIzaSyBLW_a43_pFBdPrdkv4eQpQcv_JyTPTBm4';
   static const String _url =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
@@ -60,6 +61,7 @@ Additional Rules:
       final data = jsonDecode(response.body);
       return data['candidates'][0]['content']['parts'][0]['text'];
     } else {
+      debugPrint("Gemini error ${response.statusCode}: ${response.body}");
       return "Sorry, I could not connect right now. (${response.statusCode})";
     }
   }
