@@ -5,24 +5,44 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class ChatRepository {
   final _client = Supabase.instance.client;
 
-  Future<String> getAvailableUnits() async {
-    final rows = await _client
-        .from('units')
-        .select(
-            'building, unit_code, unit_type, capacity, room_size, furnish, restroom, curfew, price_lease, status')
-        .eq('status', 'Available');
+  /// General method: fetch units with optional filters
+  Future<String> getUnits({Map<String, dynamic>? filters}) async {
+    var query = _client.from('units').select(
+      'unit_code, building, unit_type, capacity, room_size, furnish, restroom, curfew, price_lease, status',
+    );
 
-    if ((rows as List).isEmpty) return "No units are currently available.";
+    // Apply filters dynamically
+    filters?.forEach((key, value) {
+      if (value == null) return;
+      if (value is String) {
+        query = query.eq(key, value);
+      } else if (value is num) {
+        // Example: price <= value
+        query = query.lte(key, value);
+      } else if (value is bool) {
+        query = query.eq(key, value);
+      }
+    });
+
+    final rows = await query;
+
+    if ((rows as List).isEmpty) return "No units matched your criteria.";
 
     return rows.map((u) {
-      return "Unit ${u['unit_code']} at ${u['building']}: "
+      return "Unit ${u['unit_code']} at ${u['building']} (${u['status']}): "
           "${u['unit_type']}, capacity ${u['capacity']}, "
           "room size ${u['room_size']} sqm, furnishing: ${u['furnish']}, "
           "restroom: ${u['restroom']}, curfew: ${u['curfew']}, "
-          "₱${u['price_lease']}/month, status: ${u['status']}";
+          "₱${u['price_lease']}/month";
     }).join('\n');
   }
 
+  /// Simple: all available units
+  Future<String> getAvailableUnits() async {
+    return getUnits(filters: {"status": "Available"});
+  }
+
+  /// Simple: unit by code
   Future<String> getUnitByCode(String unitCode) async {
     final row = await _client
         .from('units')
@@ -40,6 +60,7 @@ class ChatRepository {
         "₱${row['price_lease']}/month, status: ${row['status']}";
   }
 
+  /// Simple: units by building
   Future<String> getUnitsByBuilding(String building) async {
     final rows = await _client
         .from('units')
@@ -60,20 +81,8 @@ class ChatRepository {
     }).join('\n');
   }
 
+  /// Simple: all units
   Future<String> getAllUnits() async {
-    final rows = await _client
-        .from('units')
-        .select(
-            'unit_code, building, unit_type, capacity, room_size, furnish, restroom, curfew, price_lease, status');
-
-    if ((rows as List).isEmpty) return "No units found.";
-
-    return rows.map((u) {
-      return "Unit ${u['unit_code']} at ${u['building']} (${u['status']}): "
-          "${u['unit_type']}, capacity ${u['capacity']}, "
-          "room size ${u['room_size']} sqm, furnishing: ${u['furnish']}, "
-          "restroom: ${u['restroom']}, curfew: ${u['curfew']}, "
-          "₱${u['price_lease']}/month";
-    }).join('\n');
+    return getUnits();
   }
 }

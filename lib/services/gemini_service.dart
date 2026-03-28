@@ -1,22 +1,20 @@
-// lib/services/gemini_service.dart
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyCBABlaIG-nLJy89I8Jvln2Q3H94yChxi4';
+  static const String _apiKey = 'AIzaSyD1rTqIC3BalhAV0zxaTS4IEjpLWv4szzU';
   static const String _url =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
   static const String _systemPrompt = '''
 You are the official AI Concierge for the NorthCare Property Management System.
 You assist prospective renters and the general public inquiring about units.
-You manage three apartment buildings in Bacolod City: D\' NorthGate, D\' NorthWay, and NorthPoint Atrium.
+You manage three apartment buildings in Bacolod City: D' NorthGate, D' NorthWay, and NorthPoint Atrium.
 
 Tone: Professional, welcoming, concise, and helpful.
 
 General Knowledge:
-- Location: All properties are along BS Aquino Drive, Bacolod City, near the University of St. La Salle, The Doctors\' Hospital, and Riverside Medical Center.
+- Location: All properties are along BS Aquino Drive, Bacolod City, near the University of St. La Salle, The Doctors' Hospital, and Riverside Medical Center.
 - Unit Types: Studios, 1-Bedroom, and 2-Bedroom units.
 - Pet Policy: Small pets allowed with prior approval and a pet deposit.
 - Maintenance: Direct tenants to the "Report Maintenance Issue" form in the app.
@@ -40,16 +38,11 @@ Additional Rules:
       Uri.parse(_url),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "system_instruction": {
-          "parts": [
-            {"text": "$_systemPrompt\n\nDatabase Context:\n$dbContext"}
-          ]
-        },
         "contents": [
           {
             "role": "user",
             "parts": [
-              {"text": userPrompt}
+              {"text": "$_systemPrompt\n\nDatabase Context:\n$dbContext\n\n$userPrompt"}
             ]
           }
         ]
