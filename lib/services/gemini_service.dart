@@ -5,9 +5,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
-
 class GeminiService {
-  static const String _apiKey = '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';
+  // Load from environment or config
+static const String _apiKey = String.fromEnvironment('GROQ_API_KEY');
   static const String _url = 'https://api.groq.com/openai/v1/chat/completions';
 
 
