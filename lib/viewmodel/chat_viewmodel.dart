@@ -92,7 +92,44 @@ class ChatViewModel extends ChangeNotifier {
   String? _extractFurnish(String text) => _extractFromMap(text, _furnishMap);
   String? _extractRestroom(String text) => _extractFromMap(text, _restroomMap);
 
+  Map<String, int>? _extractPriceRange(String text) {
+    final lower = text.toLowerCase().replaceAll(',', '');
+
+    final betweenMatch = RegExp(
+            r'between\s*(?:php|₱)?\s*(\d+)\s*(?:and|to|-)\s*(?:php|₱)?\s*(\d+)')
+        .firstMatch(lower);
+    if (betweenMatch != null) {
+      return {
+        'min': int.parse(betweenMatch.group(1)!),
+        'max': int.parse(betweenMatch.group(2)!),
+      };
+    }
+
+    final rangeMatch = RegExp(
+            r'(?:php|₱)?\s*(\d{4,})\s*(?:to|-)\s*(?:php|₱)?\s*(\d{4,})')
+        .firstMatch(lower);
+    if (rangeMatch != null) {
+      return {
+        'min': int.parse(rangeMatch.group(1)!),
+        'max': int.parse(rangeMatch.group(2)!),
+      };
+    }
+
+    final kRangeMatch = RegExp(
+            r'(\d+(?:\.\d+)?)\s*k\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*k')
+        .firstMatch(lower);
+    if (kRangeMatch != null) {
+      return {
+        'min': (double.parse(kRangeMatch.group(1)!) * 1000).round(),
+        'max': (double.parse(kRangeMatch.group(2)!) * 1000).round(),
+      };
+    }
+
+    return null;
+  }
+
   int? _extractMaxPrice(String text) {
+    if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
 
     final kMatch = RegExp(
@@ -114,6 +151,7 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   int? _extractMinPrice(String text) {
+    if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
 
     final kMatch = RegExp(
@@ -170,28 +208,34 @@ class ChatViewModel extends ChangeNotifier {
       } else {
         final unitCode = _extractUnitCode(userText);
         final building = _extractBuilding(userText);
-        final maxPrice = _extractMaxPrice(userText);
-        final minPrice = _extractMinPrice(userText);
+        final priceRange = _extractPriceRange(userText);
+        final maxPrice = priceRange != null ? priceRange['max'] : _extractMaxPrice(userText);
+        final minPrice = priceRange != null ? priceRange['min'] : _extractMinPrice(userText);
         final unitType = _extractUnitType(userText);
         final furnish = _extractFurnish(userText);
         final restroom = _extractRestroom(userText);
         final capacity = _extractCapacity(userText);
 
-        // Debug log — remove before final submission
         debugPrint("── Chat filters ──────────────────────────");
-        debugPrint("unitCode : $unitCode");
-        debugPrint("building : $building");
-        debugPrint("unitType : $unitType");
-        debugPrint("furnish  : $furnish");
-        debugPrint("restroom : $restroom");
-        debugPrint("minPrice : $minPrice");
-        debugPrint("maxPrice : $maxPrice");
-        debugPrint("capacity : $capacity");
+        debugPrint("unitCode  : $unitCode");
+        debugPrint("building  : $building");
+        debugPrint("unitType  : $unitType");
+        debugPrint("furnish   : $furnish");
+        debugPrint("restroom  : $restroom");
+        debugPrint("minPrice  : $minPrice");
+        debugPrint("maxPrice  : $maxPrice");
+        debugPrint("capacity  : $capacity");
+        debugPrint("priceRange: $priceRange");
         debugPrint("──────────────────────────────────────────");
 
         final hasFilters = unitType != null || maxPrice != null ||
             minPrice != null || furnish != null || restroom != null ||
             building != null || capacity != null;
+
+        // Determine if user explicitly wants all units regardless of status
+        final wantsAllStatus = _matches(userText, [
+          'all', 'occupied', 'regardless', 'any status', 'both',
+        ]);
 
         if (unitCode != null) {
           dbContext = await _repository.getUnitByCode(unitCode);
@@ -210,7 +254,9 @@ class ChatViewModel extends ChangeNotifier {
           );
 
         } else if (hasFilters) {
+          // Default to Available unless user explicitly asks for all/occupied
           dbContext = await _repository.getUnits(
+            status: wantsAllStatus ? null : 'Available',
             unitType: unitType,
             furnish: furnish,
             restroom: restroom,
