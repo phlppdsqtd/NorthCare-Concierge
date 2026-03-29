@@ -7,8 +7,11 @@ import 'views/home_screen.dart';
 import 'viewmodel/admin_inbox_viewmodel.dart';
 import 'viewmodel/chat_viewmodel.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env"); // Add this
 
   await Supabase.initialize(
     url: 'https://tkfspwjyyerynizfmrok.supabase.co',
