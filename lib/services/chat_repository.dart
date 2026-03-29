@@ -14,12 +14,25 @@ class ChatRepository {
     // Apply filters dynamically
     filters?.forEach((key, value) {
       if (value == null) return;
-      if (value is String) {
-        query = query.eq(key, value);
-      } else if (value is num) {
-        // Example: price <= value
-        query = query.lte(key, value);
-      } else if (value is bool) {
+      
+      if (key == 'furnish' && value == 'Any Furnished') {
+        // Exclude bare units if they ask for general "furnished"
+        query = query.neq('furnish', 'Unfurnished');
+        
+      } else if (key == 'min_price') {
+        // Handle minimum price (e.g., "above 15k")
+        query = query.gte('price_lease', value);
+        
+      } else if (key == 'max_price') {
+        // Handle maximum price (e.g., "under 15k")
+        query = query.lte('price_lease', value);
+        
+      } else if (key == 'capacity') {
+        // Find units that fit AT LEAST the requested capacity
+        query = query.gte('capacity', value);
+        
+      } else {
+        // Standard exact match for everything else (strings, bools, etc.)
         query = query.eq(key, value);
       }
     });
