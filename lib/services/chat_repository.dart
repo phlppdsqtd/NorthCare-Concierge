@@ -5,44 +5,73 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class ChatRepository {
   final _client = Supabase.instance.client;
 
-  /// General method: fetch units with optional filters
-  Future<String> getUnits({Map<String, dynamic>? filters}) async {
-    var query = _client.from('units').select(
-      'unit_code, building, unit_type, capacity, room_size, furnish, restroom, curfew, price_lease, status',
-    );
+  String _formatUnit(Map<String, dynamic> u) {
+    return "Unit Code: ${u['unit_code']} | "
+        "Building: ${u['building']} | "
+        "Status: ${u['status']} | "
+        "Type: ${u['unit_type']} | "
+        "Capacity: ${u['capacity']} pax | "
+        "Room size: ${u['room_size']} sqm | "
+        "Furnishing: ${u['furnish']} | "
+        "Restroom: ${u['restroom']} | "
+        "Curfew: ${u['curfew']} | "
+        "Price: ₱${u['price_lease']}/month";
+  }
 
-    // Apply filters dynamically
-    filters?.forEach((key, value) {
-      if (value == null) return;
-      if (value is String) {
-        query = query.eq(key, value);
-      } else if (value is num) {
-        // Example: price <= value
-        query = query.lte(key, value);
-      } else if (value is bool) {
-        query = query.eq(key, value);
-      }
-    });
+  Future<String> getUnits({
+    String? status,
+    String? unitType,
+    String? furnish,
+    String? restroom,
+    String? building,
+    int? minPrice,
+    int? maxPrice,
+    int? minCapacity,
+    int? maxCapacity,
+  }) async {
+    var query = _client.from('units').select(
+          'unit_code, building, unit_type, capacity, room_size, '
+          'furnish, restroom, curfew, price_lease, status',
+        );
+
+    if (status != null) query = query.eq('status', status);
+    if (unitType != null) query = query.ilike('unit_type', '%$unitType%');
+    if (furnish != null) query = query.ilike('furnish', '%$furnish%');
+    if (restroom != null) query = query.ilike('restroom', '%$restroom%');
+    if (building != null) query = query.ilike('building', '%$building%');
+    if (minPrice != null) query = query.gte('price_lease', minPrice);
+    if (maxPrice != null) query = query.lte('price_lease', maxPrice);
+    if (minCapacity != null) query = query.gte('capacity', minCapacity);
+    if (maxCapacity != null) query = query.lte('capacity', maxCapacity);
 
     final rows = await query;
 
     if ((rows as List).isEmpty) return "No units matched your criteria.";
 
-    return rows.map((u) {
-      return "Unit ${u['unit_code']} at ${u['building']} (${u['status']}): "
-          "${u['unit_type']}, capacity ${u['capacity']}, "
-          "room size ${u['room_size']} sqm, furnishing: ${u['furnish']}, "
-          "restroom: ${u['restroom']}, curfew: ${u['curfew']}, "
-          "₱${u['price_lease']}/month";
-    }).join('\n');
+    return rows.map((u) => _formatUnit(u)).join('\n');
   }
 
-  /// Simple: all available units
-  Future<String> getAvailableUnits() async {
-    return getUnits(filters: {"status": "Available"});
+  Future<String> getAvailableUnits({
+    String? unitType,
+    String? furnish,
+    String? restroom,
+    String? building,
+    int? minPrice,
+    int? maxPrice,
+    int? minCapacity,
+  }) async {
+    return getUnits(
+      status: 'Available',
+      unitType: unitType,
+      furnish: furnish,
+      restroom: restroom,
+      building: building,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      minCapacity: minCapacity,
+    );
   }
 
-  /// Simple: unit by code
   Future<String> getUnitByCode(String unitCode) async {
     final row = await _client
         .from('units')
@@ -53,35 +82,13 @@ class ChatRepository {
 
     if (row == null) return "No unit found with code $unitCode.";
 
-    return "Unit ${row['unit_code']} at ${row['building']}: "
-        "${row['unit_type']}, capacity ${row['capacity']}, "
-        "room size ${row['room_size']} sqm, furnishing: ${row['furnish']}, "
-        "restroom: ${row['restroom']}, curfew: ${row['curfew']}, "
-        "₱${row['price_lease']}/month, status: ${row['status']}";
+    return _formatUnit(row);
   }
 
-  /// Simple: units by building
   Future<String> getUnitsByBuilding(String building) async {
-    final rows = await _client
-        .from('units')
-        .select(
-            'unit_code, building, unit_type, capacity, room_size, furnish, restroom, curfew, price_lease, status')
-        .ilike('building', '%$building%');
-
-    if ((rows as List).isEmpty) {
-      return "No units found for building matching '$building'.";
-    }
-
-    return rows.map((u) {
-      return "Unit ${u['unit_code']} (${u['status']}): "
-          "${u['unit_type']}, capacity ${u['capacity']}, "
-          "room size ${u['room_size']} sqm, furnishing: ${u['furnish']}, "
-          "restroom: ${u['restroom']}, curfew: ${u['curfew']}, "
-          "₱${u['price_lease']}/month";
-    }).join('\n');
+    return getUnits(building: building);
   }
 
-  /// Simple: all units
   Future<String> getAllUnits() async {
     return getUnits();
   }
