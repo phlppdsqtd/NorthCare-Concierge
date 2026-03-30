@@ -19,32 +19,32 @@ class ChatViewModel extends ChangeNotifier {
 
   bool isLoading = false;
 
-  // ── Lookup maps (must match exact DB values) ────────────────────────────────
+  // ── Lookup maps ─────────────────────────────────────────────────────────────
 
   static const Map<String, String> _furnishMap = {
-    'fully furnished': 'Fully Furnished',
-    'fully-furnished': 'Fully Furnished',
-    'full furnished': 'Fully Furnished',
-    'fully furnish': 'Fully Furnished',
-    'semi furnished': 'Semi Furnished',
-    'semi-furnished': 'Semi Furnished',
-    'semifurnished': 'Semi Furnished',
+    'fully furnished':     'Fully Furnished',
+    'fully-furnished':     'Fully Furnished',
+    'full furnished':      'Fully Furnished',
+    'fully furnish':       'Fully Furnished',
+    'semi furnished':      'Semi Furnished',
+    'semi-furnished':      'Semi Furnished',
+    'semifurnished':       'Semi Furnished',
     'partially furnished': 'Semi Furnished',
-    'semi furnish': 'Semi Furnished',
-    'unfurnished': 'Unfurnished',
-    'not furnished': 'Unfurnished',
-    'bare': 'Unfurnished',
-    'no furnish': 'Unfurnished',
+    'semi furnish':        'Semi Furnished',
+    'unfurnished':         'Unfurnished',
+    'not furnished':       'Unfurnished',
+    'bare':                'Unfurnished',
+    'no furnish':          'Unfurnished',
   };
 
   static const Map<String, String> _unitTypeMap = {
-    'studio': 'Studio',
-    '1-bedroom': '1-Bedroom',
-    '1 bedroom': '1-Bedroom',
+    'studio':      'Studio',
+    '1-bedroom':   '1-Bedroom',
+    '1 bedroom':   '1-Bedroom',
     'one bedroom': '1-Bedroom',
     'one-bedroom': '1-Bedroom',
-    '2-bedroom': '2-Bedroom',
-    '2 bedroom': '2-Bedroom',
+    '2-bedroom':   '2-Bedroom',
+    '2 bedroom':   '2-Bedroom',
     'two bedroom': '2-Bedroom',
     'two-bedroom': '2-Bedroom',
   };
@@ -52,18 +52,35 @@ class ChatViewModel extends ChangeNotifier {
   static const Map<String, String> _restroomMap = {
     'private restroom': 'Private',
     'private bathroom': 'Private',
-    'private cr': 'Private',
-    'private toilet': 'Private',
-    'own restroom': 'Private',
-    'own bathroom': 'Private',
-    'own cr': 'Private',
-    'shared restroom': 'Shared',
-    'shared bathroom': 'Shared',
-    'shared cr': 'Shared',
-    'shared toilet': 'Shared',
-    'common restroom': 'Shared',
-    'common bathroom': 'Shared',
+    'private cr':       'Private',
+    'private toilet':   'Private',
+    'own restroom':     'Private',
+    'own bathroom':     'Private',
+    'own cr':           'Private',
+    'shared restroom':  'Shared',
+    'shared bathroom':  'Shared',
+    'shared cr':        'Shared',
+    'shared toilet':    'Shared',
+    'common restroom':  'Shared',
+    'common bathroom':  'Shared',
   };
+
+  static const List<String> _allStatusKeywords = [
+    'all units', 'all occupied', 'occupied',
+    'regardless', 'any status', 'both',
+  ];
+
+  static const List<String> _availabilityKeywords = [
+    'available', 'vacant', 'free unit', 'open unit', 'for rent', 'empty',
+  ];
+
+  static const List<String> _generalListingKeywords = [
+    'all unit', 'list unit', 'show unit', 'what unit', 'show all',
+    'what do you offer', 'what are your units', 'unit do you have',
+    'price', 'rent', 'monthly', 'how much', 'cost', 'rate',
+    'studio', 'bedroom', 'furnished', 'furnish', 'restroom',
+    'curfew', 'sqm', 'room size', 'capacity', 'unit', 'building',
+  ];
 
   // ── Extractors ──────────────────────────────────────────────────────────────
 
@@ -72,12 +89,22 @@ class ChatViewModel extends ChangeNotifier {
     return match?.group(0)?.toUpperCase();
   }
 
-  String? _extractBuilding(String text) {
+  /// Returns safe partial building search terms (no apostrophes).
+  /// Uses short unique substrings that ilike can match safely.
+  List<String> _extractBuildings(String text) {
     final lower = text.toLowerCase();
-    if (lower.contains('northgate') || lower.contains('north gate')) return 'NorthGate';
-    if (lower.contains('northway') || lower.contains('north way')) return 'NorthWay';
-    if (lower.contains('northpoint') || lower.contains('north point') || lower.contains('atrium')) return 'NorthPoint';
-    return null;
+    final buildings = <String>[];
+    if (lower.contains('northgate') || lower.contains('north gate')) {
+      buildings.add('NorthGate');
+    }
+    if (lower.contains('northway') || lower.contains('north way')) {
+      buildings.add('NorthWay');
+    }
+    if (lower.contains('northpoint') || lower.contains('north point') ||
+        lower.contains('atrium')) {
+      buildings.add('NorthPoint');
+    }
+    return buildings;
   }
 
   String? _extractFromMap(String text, Map<String, String> map) {
@@ -89,9 +116,11 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   String? _extractUnitType(String text) => _extractFromMap(text, _unitTypeMap);
-  String? _extractFurnish(String text) => _extractFromMap(text, _furnishMap);
-  String? _extractRestroom(String text) => _extractFromMap(text, _restroomMap);
+  String? _extractFurnish(String text)   => _extractFromMap(text, _furnishMap);
+  String? _extractRestroom(String text)  => _extractFromMap(text, _restroomMap);
 
+  /// Extracts explicit price ranges only:
+  /// "between X and Y", "₱X to ₱Y", "Xk to Yk"
   Map<String, int>? _extractPriceRange(String text) {
     final lower = text.toLowerCase().replaceAll(',', '');
 
@@ -105,8 +134,9 @@ class ChatViewModel extends ChangeNotifier {
       };
     }
 
+    // Requires ₱ or php prefix to avoid false matches
     final rangeMatch = RegExp(
-            r'(?:php|₱)?\s*(\d{4,})\s*(?:to|-)\s*(?:php|₱)?\s*(\d{4,})')
+            r'(?:php|₱)\s*(\d{3,})\s*(?:to|-)\s*(?:php|₱)?\s*(\d{3,})')
         .firstMatch(lower);
     if (rangeMatch != null) {
       return {
@@ -115,6 +145,7 @@ class ChatViewModel extends ChangeNotifier {
       };
     }
 
+    // "Xk to Yk" shorthand
     final kRangeMatch = RegExp(
             r'(\d+(?:\.\d+)?)\s*k\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*k')
         .firstMatch(lower);
@@ -128,6 +159,7 @@ class ChatViewModel extends ChangeNotifier {
     return null;
   }
 
+  /// Price ceiling: "under/below/less than X"
   int? _extractMaxPrice(String text) {
     if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
@@ -137,10 +169,10 @@ class ChatViewModel extends ChangeNotifier {
         .firstMatch(lower);
     if (kMatch != null) return int.parse(kMatch.group(1)!) * 1000;
 
-    final strictMatch = RegExp(
+    final numMatch = RegExp(
             r'(?:under|below|less\s+than)\s*(?:php|₱)?\s*(\d+)')
         .firstMatch(lower);
-    if (strictMatch != null) return int.parse(strictMatch.group(1)!);
+    if (numMatch != null) return int.parse(numMatch.group(1)!);
 
     final looseMatch = RegExp(
             r'(?:max(?:imum)?|at\s+most|up\s+to)\s*(?:php|₱)?\s*(\d+)')
@@ -150,6 +182,7 @@ class ChatViewModel extends ChangeNotifier {
     return null;
   }
 
+  /// Price floor: "above/over/more than/greater than X"
   int? _extractMinPrice(String text) {
     if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
@@ -167,10 +200,12 @@ class ChatViewModel extends ChangeNotifier {
     return null;
   }
 
+  /// Capacity: "for 2 people", "3 pax", "fits 4"
   int? _extractCapacity(String text) {
     final lower = text.toLowerCase();
     final match = RegExp(
-            r'(?:for|fits?|accommodate[sd]?|capacity\s+of|up\s+to)?\s*(\d+)\s*(?:people|persons?|pax|tenants?|occupants?)')
+            r'(?:for|fits?|accommodate[sd]?|capacity\s+of|up\s+to)?\s*'
+            r'(\d+)\s*(?:people|persons?|pax|tenants?|occupants?)')
         .firstMatch(lower);
     if (match != null) return int.parse(match.group(1)!);
     return null;
@@ -183,7 +218,7 @@ class ChatViewModel extends ChangeNotifier {
 
   bool _isSensitiveQuery(String text) {
     return _matches(text, [
-      'who lives', 'who is in', 'who stays', 'tenant name', 'occupant',
+      'who lives', 'who is in', 'who stays', 'tenant name',
       'renter name', 'who rents', 'contact number', 'phone number',
       'personal info', 'resident name', 'who is renting', 'who is staying',
       'tell me who', 'name of the tenant', 'name of tenant',
@@ -206,73 +241,66 @@ class ChatViewModel extends ChangeNotifier {
         dbContext =
             "The user is asking for confidential tenant information. Do not provide any personal details.";
       } else {
-        final unitCode = _extractUnitCode(userText);
-        final building = _extractBuilding(userText);
+        final unitCode   = _extractUnitCode(userText);
+        final buildings  = _extractBuildings(userText);
         final priceRange = _extractPriceRange(userText);
-        final maxPrice = priceRange != null ? priceRange['max'] : _extractMaxPrice(userText);
-        final minPrice = priceRange != null ? priceRange['min'] : _extractMinPrice(userText);
-        final unitType = _extractUnitType(userText);
-        final furnish = _extractFurnish(userText);
-        final restroom = _extractRestroom(userText);
-        final capacity = _extractCapacity(userText);
+        final maxPrice   = priceRange?['max'] ?? _extractMaxPrice(userText);
+        final minPrice   = priceRange?['min'] ?? _extractMinPrice(userText);
+        final unitType   = _extractUnitType(userText);
+        final furnish    = _extractFurnish(userText);
+        final restroom   = _extractRestroom(userText);
+        final capacity   = _extractCapacity(userText);
 
-        debugPrint("── Chat filters ──────────────────────────");
-        debugPrint("unitCode  : $unitCode");
-        debugPrint("building  : $building");
-        debugPrint("unitType  : $unitType");
-        debugPrint("furnish   : $furnish");
-        debugPrint("restroom  : $restroom");
-        debugPrint("minPrice  : $minPrice");
-        debugPrint("maxPrice  : $maxPrice");
-        debugPrint("capacity  : $capacity");
-        debugPrint("priceRange: $priceRange");
-        debugPrint("──────────────────────────────────────────");
+        final isAvailabilityQuery = _matches(userText, _availabilityKeywords);
+        final wantsAllStatus      = _matches(userText, _allStatusKeywords);
+        final String? statusFilter = isAvailabilityQuery
+            ? 'Available'
+            : wantsAllStatus
+                ? null
+                : 'Available';
 
         final hasFilters = unitType != null || maxPrice != null ||
             minPrice != null || furnish != null || restroom != null ||
-            building != null || capacity != null;
-
-        // Determine if user explicitly wants all units regardless of status
-        final wantsAllStatus = _matches(userText, [
-          'all', 'occupied', 'regardless', 'any status', 'both',
-        ]);
+            buildings.isNotEmpty || capacity != null;
 
         if (unitCode != null) {
           dbContext = await _repository.getUnitByCode(unitCode);
 
-        } else if (_matches(userText, [
-          'available', 'vacant', 'free unit', 'open unit', 'for rent', 'empty',
-        ])) {
-          dbContext = await _repository.getAvailableUnits(
-            unitType: unitType,
-            furnish: furnish,
-            restroom: restroom,
-            building: building,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-            minCapacity: capacity,
-          );
+        } else if (buildings.length > 1) {
+          // Multi-building: fetch each with safe partial building name
+          final results = <String>[];
+          for (final b in buildings) {
+            final result = await _repository.getUnits(
+              status:      statusFilter,
+              building:    b,
+              unitType:    unitType,
+              furnish:     furnish,
+              restroom:    restroom,
+              minPrice:    minPrice,
+              maxPrice:    maxPrice,
+              minCapacity: capacity,
+            );
+            if (result != "No units matched your criteria.") {
+              results.add(result);
+            }
+          }
+          dbContext = results.isNotEmpty
+              ? results.join('\n')
+              : "No units matched your criteria.";
 
         } else if (hasFilters) {
-          // Default to Available unless user explicitly asks for all/occupied
           dbContext = await _repository.getUnits(
-            status: wantsAllStatus ? null : 'Available',
-            unitType: unitType,
-            furnish: furnish,
-            restroom: restroom,
-            building: building,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
+            status:      statusFilter,
+            unitType:    unitType,
+            furnish:     furnish,
+            restroom:    restroom,
+            building:    buildings.isNotEmpty ? buildings.first : null,
+            minPrice:    minPrice,
+            maxPrice:    maxPrice,
             minCapacity: capacity,
           );
 
-        } else if (_matches(userText, [
-          'all unit', 'list unit', 'show unit', 'what unit', 'show all',
-          'what do you offer', 'what are your units', 'unit do you have',
-          'price', 'rent', 'monthly', 'how much', 'cost', 'rate',
-          'studio', 'bedroom', 'furnished', 'furnish', 'restroom',
-          'curfew', 'sqm', 'room size', 'capacity', 'unit', 'building',
-        ])) {
+        } else if (_matches(userText, _generalListingKeywords)) {
           dbContext = await _repository.getAllUnits();
         }
       }
