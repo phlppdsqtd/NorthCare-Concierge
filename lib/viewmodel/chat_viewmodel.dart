@@ -12,7 +12,7 @@ class ChatViewModel extends ChangeNotifier {
   final List<ChatMessage> messages = [
     ChatMessage(
       text:
-          "Hello! I am the NorthCare AI Concierge. I can help you with unit availability, pricing, and amenities. How can I assist you today?",
+          "Hello! I am the NorthCare AI Concierge. I can help you with unit availability, and pricing. How can I assist you today?",
       isUser: false,
     ),
   ];
