@@ -66,8 +66,9 @@ class ChatViewModel extends ChangeNotifier {
   };
 
   static const List<String> _allStatusKeywords = [
-    'all units', 'all occupied', 'occupied',
-    'regardless', 'any status', 'both',
+    'all occupied', 'occupied',
+    'regardless', 'any status',
+    'show occupied', 'include occupied',
   ];
 
   static const List<String> _availabilityKeywords = [
@@ -84,13 +85,11 @@ class ChatViewModel extends ChangeNotifier {
 
   // ── Extractors ──────────────────────────────────────────────────────────────
 
-  String? _extractUnitCode(String text) {
-    final match = RegExp(r'\b[A-Za-z]{1,2}\d{3}\b').firstMatch(text);
-    return match?.group(0)?.toUpperCase();
+  List<String> _extractUnitCodes(String text) {
+    final matches = RegExp(r'\b[A-Za-z]{1,2}\d{3}\b').allMatches(text);
+    return matches.map((m) => m.group(0)!.toUpperCase()).toSet().toList();
   }
 
-  /// Returns safe partial building search terms (no apostrophes).
-  /// Uses short unique substrings that ilike can match safely.
   List<String> _extractBuildings(String text) {
     final lower = text.toLowerCase();
     final buildings = <String>[];
@@ -119,8 +118,7 @@ class ChatViewModel extends ChangeNotifier {
   String? _extractFurnish(String text)   => _extractFromMap(text, _furnishMap);
   String? _extractRestroom(String text)  => _extractFromMap(text, _restroomMap);
 
-  /// Extracts explicit price ranges only:
-  /// "between X and Y", "₱X to ₱Y", "Xk to Yk"
+  /// Explicit range: "between X and Y", "₱X to ₱Y", "Xk to Yk"
   Map<String, int>? _extractPriceRange(String text) {
     final lower = text.toLowerCase().replaceAll(',', '');
 
@@ -134,7 +132,7 @@ class ChatViewModel extends ChangeNotifier {
       };
     }
 
-    // Requires ₱ or php prefix to avoid false matches
+    // requires ₱/php prefix to avoid false matches
     final rangeMatch = RegExp(
             r'(?:php|₱)\s*(\d{3,})\s*(?:to|-)\s*(?:php|₱)?\s*(\d{3,})')
         .firstMatch(lower);
@@ -145,7 +143,6 @@ class ChatViewModel extends ChangeNotifier {
       };
     }
 
-    // "Xk to Yk" shorthand
     final kRangeMatch = RegExp(
             r'(\d+(?:\.\d+)?)\s*k\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*k')
         .firstMatch(lower);
@@ -159,48 +156,46 @@ class ChatViewModel extends ChangeNotifier {
     return null;
   }
 
-  /// Price ceiling: "under/below/less than X"
+  /// Price ceiling — expanded to cover more natural phrases
   int? _extractMaxPrice(String text) {
     if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
 
+    // Handle "Xk" shorthand first
     final kMatch = RegExp(
-            r'(?:under|below|less\s+than)\s*(?:php|₱)?\s*(\d+)\s*k')
+            r'(?:under|below|less\s+than|cheaper\s+than|not\s+more\s+than|no\s+more\s+than|at\s+most|max(?:imum)?|up\s+to)\s*(?:php|₱)?\s*(\d+)\s*k')
         .firstMatch(lower);
     if (kMatch != null) return int.parse(kMatch.group(1)!) * 1000;
 
+    // Handle plain numbers — strip ₱ before matching
+    final clean = lower.replaceAll('₱', '').replaceAll('php', '');
     final numMatch = RegExp(
-            r'(?:under|below|less\s+than)\s*(?:php|₱)?\s*(\d+)')
-        .firstMatch(lower);
+            r'(?:under|below|less\s+than|cheaper\s+than|not\s+more\s+than|no\s+more\s+than|at\s+most|max(?:imum)?|up\s+to)\s*(\d+)')
+        .firstMatch(clean);
     if (numMatch != null) return int.parse(numMatch.group(1)!);
-
-    final looseMatch = RegExp(
-            r'(?:max(?:imum)?|at\s+most|up\s+to)\s*(?:php|₱)?\s*(\d+)')
-        .firstMatch(lower);
-    if (looseMatch != null) return int.parse(looseMatch.group(1)!);
 
     return null;
   }
 
-  /// Price floor: "above/over/more than/greater than X"
+  /// Price floor — expanded to cover more natural phrases
   int? _extractMinPrice(String text) {
     if (_extractPriceRange(text) != null) return null;
     final lower = text.toLowerCase().replaceAll(',', '');
 
     final kMatch = RegExp(
-            r'(?:above|over|more\s+than|greater\s+than|at\s+least|minimum|starting\s+(?:at|from))\s*(?:php|₱)?\s*(\d+)\s*k')
+            r'(?:above|over|more\s+than|greater\s+than|at\s+least|minimum|pricier\s+than|costlier\s+than|starting\s+(?:at|from))\s*(?:php|₱)?\s*(\d+)\s*k')
         .firstMatch(lower);
     if (kMatch != null) return int.parse(kMatch.group(1)!) * 1000;
 
+    final clean = lower.replaceAll('₱', '').replaceAll('php', '');
     final numMatch = RegExp(
-            r'(?:above|over|more\s+than|greater\s+than|at\s+least|minimum|starting\s+(?:at|from))\s*(?:php|₱)?\s*(\d+)')
-        .firstMatch(lower);
+            r'(?:above|over|more\s+than|greater\s+than|at\s+least|minimum|pricier\s+than|costlier\s+than|starting\s+(?:at|from))\s*(\d+)')
+        .firstMatch(clean);
     if (numMatch != null) return int.parse(numMatch.group(1)!);
 
     return null;
   }
 
-  /// Capacity: "for 2 people", "3 pax", "fits 4"
   int? _extractCapacity(String text) {
     final lower = text.toLowerCase();
     final match = RegExp(
@@ -239,9 +234,9 @@ class ChatViewModel extends ChangeNotifier {
     try {
       if (_isSensitiveQuery(userText)) {
         dbContext =
-            "The user is asking for confidential tenant information. Do not provide any personal details.";
+            "DATABASE RESULT: 0 units found. The user is asking for confidential tenant information. Do not provide any personal details.";
       } else {
-        final unitCode   = _extractUnitCode(userText);
+        final unitCodes  = _extractUnitCodes(userText);
         final buildings  = _extractBuildings(userText);
         final priceRange = _extractPriceRange(userText);
         final maxPrice   = priceRange?['max'] ?? _extractMaxPrice(userText);
@@ -250,6 +245,9 @@ class ChatViewModel extends ChangeNotifier {
         final furnish    = _extractFurnish(userText);
         final restroom   = _extractRestroom(userText);
         final capacity   = _extractCapacity(userText);
+
+        // When unit codes are present, ignore building extractor
+        final buildingsToQuery = unitCodes.isEmpty ? buildings : <String>[];
 
         final isAvailabilityQuery = _matches(userText, _availabilityKeywords);
         final wantsAllStatus      = _matches(userText, _allStatusKeywords);
@@ -261,15 +259,30 @@ class ChatViewModel extends ChangeNotifier {
 
         final hasFilters = unitType != null || maxPrice != null ||
             minPrice != null || furnish != null || restroom != null ||
-            buildings.isNotEmpty || capacity != null;
+            buildingsToQuery.isNotEmpty || capacity != null;
 
-        if (unitCode != null) {
-          dbContext = await _repository.getUnitByCode(unitCode);
+        debugPrint("── Chat filters ──────────────────────────");
+        debugPrint("unitCodes : $unitCodes");
+        debugPrint("buildings : $buildingsToQuery");
+        debugPrint("unitType  : $unitType");
+        debugPrint("furnish   : $furnish");
+        debugPrint("restroom  : $restroom");
+        debugPrint("minPrice  : $minPrice");
+        debugPrint("maxPrice  : $maxPrice");
+        debugPrint("capacity  : $capacity");
+        debugPrint("status    : $statusFilter");
+        debugPrint("──────────────────────────────────────────");
 
-        } else if (buildings.length > 1) {
-          // Multi-building: fetch each with safe partial building name
+        if (unitCodes.isNotEmpty) {
           final results = <String>[];
-          for (final b in buildings) {
+          for (final code in unitCodes) {
+            results.add(await _repository.getUnitByCode(code));
+          }
+          dbContext = results.join('\n');
+
+        } else if (buildingsToQuery.length > 1) {
+          final results = <String>[];
+          for (final b in buildingsToQuery) {
             final result = await _repository.getUnits(
               status:      statusFilter,
               building:    b,
@@ -280,13 +293,9 @@ class ChatViewModel extends ChangeNotifier {
               maxPrice:    maxPrice,
               minCapacity: capacity,
             );
-            if (result != "No units matched your criteria.") {
-              results.add(result);
-            }
+            results.add(result);
           }
-          dbContext = results.isNotEmpty
-              ? results.join('\n')
-              : "No units matched your criteria.";
+          dbContext = results.join('\n');
 
         } else if (hasFilters) {
           dbContext = await _repository.getUnits(
@@ -294,7 +303,7 @@ class ChatViewModel extends ChangeNotifier {
             unitType:    unitType,
             furnish:     furnish,
             restroom:    restroom,
-            building:    buildings.isNotEmpty ? buildings.first : null,
+            building:    buildingsToQuery.isNotEmpty ? buildingsToQuery.first : null,
             minPrice:    minPrice,
             maxPrice:    maxPrice,
             minCapacity: capacity,
@@ -305,8 +314,20 @@ class ChatViewModel extends ChangeNotifier {
         }
       }
 
-      final aiText = await _gemini.ask(userText, dbContext);
-      messages.add(ChatMessage(text: aiText, isUser: false));
+      // If database returned nothing, respond directly without calling AI
+      if (dbContext.contains('DATABASE RESULT: 0 units found') ||
+          dbContext.contains('does not exist')) {
+        messages.add(ChatMessage(
+          text:
+              "I'm sorry, no units matched your criteria in our current listings. "
+              "For more assistance, please submit a Unit Inquiry form in the app "
+              "and our property manager will get back to you.",
+          isUser: false,
+        ));
+      } else {
+        final aiText = await _gemini.ask(userText, dbContext);
+        messages.add(ChatMessage(text: aiText, isUser: false));
+      }
     } catch (e) {
       messages.add(ChatMessage(
         text: "Sorry, I could not connect right now. Please try again later.",

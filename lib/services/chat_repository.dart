@@ -34,21 +34,27 @@ class ChatRepository {
           'furnish, restroom, curfew, price_lease, status',
         );
 
-    if (status != null) query = query.eq('status', status);
-    if (unitType != null) query = query.ilike('unit_type', '%$unitType%');
-    if (furnish != null) query = query.ilike('furnish', '%$furnish%');
-    if (restroom != null) query = query.ilike('restroom', '%$restroom%');
-    if (building != null) query = query.ilike('building', '%$building%');
+    if (status != null)      query = query.eq('status', status);
+    if (unitType != null)    query = query.ilike('unit_type', '%$unitType%');
+    if (furnish != null)     query = query.ilike('furnish', '%$furnish%');
+    if (restroom != null)    query = query.ilike('restroom', '%$restroom%');
+    if (building != null)    query = query.ilike('building', '%$building%');
     if (minCapacity != null) query = query.gte('capacity', minCapacity);
     if (maxCapacity != null) query = query.lte('capacity', maxCapacity);
-    if (minPrice != null) query = query.gte('price_lease', minPrice);
-    if (maxPrice != null) query = query.lte('price_lease', maxPrice);
+    if (minPrice != null)    query = query.gte('price_lease', minPrice);
+    if (maxPrice != null)    query = query.lte('price_lease', maxPrice);
 
     final rows = await query;
+    final list = rows as List;
 
-    if ((rows as List).isEmpty) return "No units matched your criteria.";
+    if (list.isEmpty) {
+      return "DATABASE RESULT: 0 units found. No units matched your criteria. "
+          "Do NOT invent or suggest any units.";
+    }
 
-    return rows.map((u) => _formatUnit(u)).join('\n');
+    final header = "DATABASE RESULT: ${list.length} unit(s) found. "
+        "List ALL of them exactly as shown — do not add, remove, or modify any:\n";
+    return header + list.map((u) => _formatUnit(u)).join('\n');
   }
 
   Future<String> getAvailableUnits({
@@ -61,13 +67,13 @@ class ChatRepository {
     int? minCapacity,
   }) async {
     return getUnits(
-      status: 'Available',
-      unitType: unitType,
-      furnish: furnish,
-      restroom: restroom,
-      building: building,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
+      status:      'Available',
+      unitType:    unitType,
+      furnish:     furnish,
+      restroom:    restroom,
+      building:    building,
+      minPrice:    minPrice,
+      maxPrice:    maxPrice,
       minCapacity: minCapacity,
     );
   }
@@ -81,8 +87,11 @@ class ChatRepository {
         .eq('unit_code', unitCode)
         .maybeSingle();
 
-    if (row == null) return "No unit found with code $unitCode.";
-    return _formatUnit(row);
+    if (row == null) {
+      return "DATABASE RESULT: Unit $unitCode does not exist. "
+          "Do NOT invent details for this unit code.";
+    }
+    return "DATABASE RESULT: 1 unit found.\n${_formatUnit(row)}";
   }
 
   Future<String> getUnitsByBuilding(String building) async {
