@@ -4,11 +4,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiService {
 
-  final apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  // final apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  static const String apiKey = ''; //insert internal API Key here
   static const String _url = 'https://api.groq.com/openai/v1/chat/completions';
 
   static const String _systemPrompt = '''
@@ -53,7 +53,6 @@ GENERAL:
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $apiKey',
-        //'Authorization': 'Bearer $_apiKey',
       },
       body: jsonEncode({
         "model": "llama-3.3-70b-versatile",
