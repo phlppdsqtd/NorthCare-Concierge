@@ -12,7 +12,7 @@ class ChatViewModel extends ChangeNotifier {
   final List<ChatMessage> messages = [
     ChatMessage(
       text:
-          "Hello! I am the NorthCare AI Concierge. I can help you with unit availability, and pricing. How can I assist you today?",
+          "Hello! I am the NorthCare AI Concierge. I can help you with unit availability, pricing, and amenities. How can I assist you today?",
       isUser: false,
     ),
   ];
@@ -123,12 +123,15 @@ class ChatViewModel extends ChangeNotifier {
     final lower = text.toLowerCase().replaceAll(',', '');
 
     final betweenMatch = RegExp(
-            r'between\s*(?:php|₱)?\s*(\d+)\s*(?:and|to|-)\s*(?:php|₱)?\s*(\d+)')
+            r'between\s*(?:php|₱)?\s*(\d+(?:\.\d+)?)\s*k?\s*(?:and|to|-)\s*(?:php|₱)?\s*(\d+(?:\.\d+)?)\s*k?')
         .firstMatch(lower);
     if (betweenMatch != null) {
+      final hasK = lower.contains('k');
+      final min = double.parse(betweenMatch.group(1)!);
+      final max = double.parse(betweenMatch.group(2)!);
       return {
-        'min': int.parse(betweenMatch.group(1)!),
-        'max': int.parse(betweenMatch.group(2)!),
+        'min': hasK ? (min * 1000).round() : min.round(),
+        'max': hasK ? (max * 1000).round() : max.round(),
       };
     }
 
@@ -144,7 +147,7 @@ class ChatViewModel extends ChangeNotifier {
     }
 
     final kRangeMatch = RegExp(
-            r'(\d+(?:\.\d+)?)\s*k\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*k')
+            r'(\d+(?:\.\d+)?)\s*k\s*(?:to|and|-)\s*(\d+(?:\.\d+)?)\s*k')
         .firstMatch(lower);
     if (kRangeMatch != null) {
       return {

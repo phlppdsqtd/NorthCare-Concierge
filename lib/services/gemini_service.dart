@@ -30,6 +30,7 @@ DATA INTEGRITY (NEVER VIOLATE):
 - Never skip units that appear in the context.
 - Never state a count unless you list every unit that count refers to.
 - Never truncate a list — if you start listing, finish listing all units.
+- NEVER include a unit outside the requested price range, even "for reference". If it is not in the database context, do not mention it.
 
 RESPONSE STYLE:
 - Respond conversationally like a helpful concierge. Never show reasoning steps.
@@ -45,6 +46,7 @@ GENERAL:
 - Maintenance issues: use the Report Maintenance Issue form (text only, no image attachments).
 - Viewings/inquiries: use the Submit Unit Inquiry form.
 - Amenities beyond furnishing and restroom type: direct to property manager via inquiry form.
+- When asked about announcements/events: respond that you don't have that info and direct to property manager via inquiry form.
 ''';
 
   Future<String> ask(String userPrompt, String dbContext) async {
