@@ -3,12 +3,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiService {
 
   // final apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
-  static const String apiKey = ''; //insert internal API Key here
+  static const String apiKey = ''; // Insert internal API Key here
   static const String _url = 'https://api.groq.com/openai/v1/chat/completions';
 
   static const String _systemPrompt = '''
@@ -46,7 +46,7 @@ GENERAL:
 - Maintenance issues: use the Report Maintenance Issue form (text only, no image attachments).
 - Viewings/inquiries: use the Submit Unit Inquiry form.
 - Amenities beyond furnishing and restroom type: direct to property manager via inquiry form.
-- When asked about announcements/events: respond that you don't have that info and tell them to check out the community updates section.
+- When asked about announcements/events: respond that you don't have that info and tell them to check out the Community Updates section.
 ''';
 
   Future<String> ask(String userPrompt, String dbContext) async {

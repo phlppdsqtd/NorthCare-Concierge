@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart'; // <-- 1. Import Google Fonts
+import 'package:google_fonts/google_fonts.dart';
 
 import 'views/home_screen.dart';
 import 'viewmodel/admin_inbox_viewmodel.dart';
