@@ -46,7 +46,7 @@ GENERAL:
 - Maintenance issues: use the Report Maintenance Issue form (text only, no image attachments).
 - Viewings/inquiries: use the Submit Unit Inquiry form.
 - Amenities beyond furnishing and restroom type: direct to property manager via inquiry form.
-- When asked about announcements/events: respond that you don't have that info and direct to property manager via inquiry form.
+- When asked about announcements/events: respond that you don't have that info and tell them to check out the community updates section.
 ''';
 
   Future<String> ask(String userPrompt, String dbContext) async {
